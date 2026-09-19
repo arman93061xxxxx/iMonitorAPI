@@ -100,7 +100,7 @@
     "npm": ">=9.0.0"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "node prisma/seed.js"
   },
   "overrides": {
     "qs": "^6.16.0"

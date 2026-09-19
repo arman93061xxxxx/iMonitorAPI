@@ -44,6 +44,8 @@ prisma/*.db-journal
 # Temporary
 tmp/
 temp/
+/seed.js
+/reset.js
 
 # Build artifacts
 *.tsbuildinfo

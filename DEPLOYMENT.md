@@ -47,12 +47,20 @@ To check the application logs for any startup errors:
 docker compose logs -f app
 ```
 
-## Step 5: Access the Dashboard
+## Step 5: Initialize Administrator Account
+Because migrations only create tables, initialize your administrator account securely (replace with your desired email and a strong password):
+```bash
+docker compose exec -e ADMIN_EMAIL="admin@monitoriq.com" -e ADMIN_PASSWORD="<YOUR_STRONG_PASSWORD>" app node prisma/seed.js
+```
+The password will be hashed with bcrypt (work factor 12) and never stored in plaintext or logged.
+
+## Step 6: Access the Dashboard
 Your application is now bound to port `3000`. 
 Open your web browser and navigate to:
 ```
 http://<your-server-ip>:3000/dashboard
 ```
+Sign in using the administrator email and password you provided in Step 5.
 
 > [!TIP]
 > For a true production setup, it is highly recommended to place a reverse proxy (like NGINX or Caddy) in front of port 3000 to serve the application over HTTPS.

@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
@@ -9,7 +9,7 @@ async function main() {
 
   if (!password) {
     console.error('❌ Error: ADMIN_PASSWORD environment variable is required to initialize the administrator.');
-    console.error('Usage: ADMIN_EMAIL="admin@example.com" ADMIN_PASSWORD="your_secure_password" npm run db:seed');
+    console.error('Usage: ADMIN_EMAIL="admin@example.com" ADMIN_PASSWORD="your_secure_password" node prisma/seed.js');
     process.exit(1);
   }
 
@@ -50,7 +50,7 @@ main()
     await prisma.$disconnect();
   })
   .catch(async error => {
-    console.error(error);
+    console.error('❌ Failed to seed administrator:', error.message);
     await prisma.$disconnect();
     process.exit(1);
   });
