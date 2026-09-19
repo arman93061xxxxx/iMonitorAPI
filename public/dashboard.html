@@ -48,6 +48,10 @@
         </div>
         <div class="top-actions">
           <span id="lastUpdated" class="muted update-badge"></span>
+          <button id="openAddApiBtnTop" class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Add API
+          </button>
           <button id="refreshButton" class="btn-secondary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5"/></svg>
             Refresh
@@ -67,7 +71,13 @@
               <p class="eyebrow">Live inventory</p>
               <h2>API health</h2>
             </div>
-            <span id="apiCount" class="count-badge"></span>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button id="openAddApiBtn" class="btn-primary btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                Add API
+              </button>
+              <span id="apiCount" class="count-badge"></span>
+            </div>
           </div>
           <div class="table-wrap">
             <table class="modern-table">
@@ -77,6 +87,7 @@
                   <th>Status</th>
                   <th>Latest Check</th>
                   <th>Response Time</th>
+                  <th style="text-align: right;">Actions</th>
                 </tr>
               </thead>
               <tbody id="apiTableBody"></tbody>
@@ -102,11 +113,103 @@
             <p class="eyebrow">Investigation</p>
             <h2 id="detailTitle">Select an incident or API</h2>
           </div>
-          <span id="detailStatus" class="status-pill neutral"><span class="pulse-dot"></span> Waiting</span>
+          <div id="detailHeaderActions" style="display: flex; gap: 8px; align-items: center;">
+            <span id="detailStatus" class="status-pill neutral"><span class="pulse-dot"></span> Waiting</span>
+          </div>
         </div>
         <div id="detailContent" class="detail-empty">Choose an item above to inspect its history.</div>
       </section>
     </section>
+
+    <!-- Add API Modal -->
+    <div id="addApiModal" class="modal-backdrop hidden">
+      <div class="modal-dialog glass-panel slide-up">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow gradient-text">Configuration</p>
+            <h2>Register New API</h2>
+          </div>
+          <button type="button" id="closeAddApiModal" class="btn-icon" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <form id="addApiForm" class="modal-form">
+          <div class="input-group">
+            <label for="newApiName">API Name *</label>
+            <input id="newApiName" type="text" placeholder="e.g. Production Authentication API" required>
+          </div>
+
+          <div class="input-group">
+            <label for="newApiUrl">Endpoint URL *</label>
+            <input id="newApiUrl" type="url" placeholder="https://api.example.com/health" required>
+          </div>
+
+          <div class="form-row">
+            <div class="input-group">
+              <label for="newApiMethod">Method</label>
+              <select id="newApiMethod">
+                <option value="GET" selected>GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+                <option value="DELETE">DELETE</option>
+                <option value="HEAD">HEAD</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <label for="newApiExpectedStatus">Expected Status</label>
+              <input id="newApiExpectedStatus" type="number" value="200" min="100" max="599" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="input-group">
+              <label for="newApiInterval">Interval (seconds)</label>
+              <input id="newApiInterval" type="number" value="60" min="10" max="86400" required>
+            </div>
+
+            <div class="input-group">
+              <label for="newApiTimeout">Timeout (ms)</label>
+              <input id="newApiTimeout" type="number" value="5000" min="1000" max="60000" required>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="newApiDescription">Description (Optional)</label>
+            <input id="newApiDescription" type="text" placeholder="Brief note about this service">
+          </div>
+
+          <!-- Live Reachability Check Preview -->
+          <div class="test-preview-box">
+            <div class="test-preview-header">
+              <span class="preview-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Live Reachability Probe
+              </span>
+              <button type="button" id="testConnectionBtn" class="btn-secondary btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Test Connection
+              </button>
+            </div>
+            <div id="testConnectionResult" class="test-result-content muted">
+              Click <b>Test Connection</b> to send a real-time probe and check reachability before saving.
+            </div>
+          </div>
+
+          <p id="addApiError" class="form-error" role="alert"></p>
+
+          <div class="modal-actions">
+            <button type="button" id="cancelAddApiBtn" class="btn-ghost">Cancel</button>
+            <button type="submit" id="saveAddApiBtn" class="btn-primary">
+              <span>Save & Start Monitoring</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </main>
   
   <script src="/dashboard.js" defer></script>

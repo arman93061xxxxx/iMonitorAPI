@@ -1,6 +1,10 @@
+import axios from 'axios';
 import prisma from '../../config/database';
 import { ForbiddenError, NotFoundError } from '../../utils/errors';
 import { ERROR_CODES } from '../../utils/constants';
+import { performCheck } from '../monitoring/monitoring.service';
+import { processCheckResult } from '../incidents';
+import { logger } from '../../utils/logger';
 
 interface CreateApiInput {
   name: string;
@@ -73,4 +77,61 @@ export const setApiActive = async (userId: string, apiId: string, isActive: bool
     where: { id: apiId },
     data: { isActive },
   });
+};
+
+interface TestApiInput {
+  url: string;
+  method?: string;
+  timeout?: number;
+  expectedStatusCode?: number;
+}
+
+export const testConnection = async (input: TestApiInput) => {
+  const startTime = Date.now();
+  const method = input.method ?? 'GET';
+  const timeoutMs = input.timeout ?? 5000;
+  const expectedStatus = input.expectedStatusCode ?? 200;
+
+  try {
+    const response = await axios.request({
+      method,
+      url: input.url,
+      timeout: timeoutMs,
+      validateStatus: null,
+      maxRedirects: 5,
+    });
+
+    const responseTime = Date.now() - startTime;
+    const isAvailable = response.status === expectedStatus;
+
+    return {
+      statusCode: response.status,
+      responseTime,
+      isAvailable,
+      expectedStatusCode: expectedStatus,
+      statusText: response.statusText,
+    };
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    return {
+      statusCode: null,
+      responseTime,
+      isAvailable: false,
+      expectedStatusCode: expectedStatus,
+      errorMessage: error.message || 'Connection failed',
+    };
+  }
+};
+
+export const triggerCheck = async (userId: string, apiId: string) => {
+  const api = await assertOwned(apiId, userId);
+  const result = await performCheck(api);
+  if (result.logId) {
+    try {
+      await processCheckResult(api.id, result, result.logId);
+    } catch (error) {
+      logger.error('Incident processing failed on manual check', { apiId: api.id, error });
+    }
+  }
+  return result;
 };

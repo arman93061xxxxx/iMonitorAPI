@@ -58,7 +58,7 @@
   const renderApis = () => { 
     $('apiCount').textContent = `${state.apis.length} APIs`; 
     if (!state.apis.length) { 
-      $('apiTableBody').innerHTML = '<tr><td colspan="4" class="detail-empty">No APIs registered. Add one via the API.</td></tr>'; 
+      $('apiTableBody').innerHTML = '<tr><td colspan="5" class="detail-empty">No APIs registered. Click "+ Add API" above to begin monitoring.</td></tr>'; 
       return; 
     } 
     
@@ -66,7 +66,7 @@
       const status = !api.isActive ? 'INACTIVE' : !api.latest ? 'UNKNOWN' : api.latest.isAvailable ? 'UP' : 'DOWN'; 
       const statusClass = status === 'UNKNOWN' || status === 'INACTIVE' ? 'neutral' : status.toLowerCase(); 
       return `
-        <tr data-api-id="${escapeHtml(api.id)}">
+        <tr data-api-id="${escapeHtml(api.id)}" style="cursor: pointer;">
           <td>
             <span class="api-name">${escapeHtml(api.name)}</span>
             <span class="api-url">${escapeHtml(safeUrl(api.url))}</span>
@@ -79,10 +79,61 @@
           </td>
           <td class="muted">${escapeHtml(api.latest ? formatDate(api.latest.timestamp) : 'No history')}</td>
           <td>${escapeHtml(api.latest?.responseTime != null ? `${api.latest.responseTime} ms` : '—')}</td>
+          <td class="table-actions">
+            <button class="btn-secondary btn-xs check-api-btn" data-api-id="${escapeHtml(api.id)}" title="Run instant health probe">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Check
+            </button>
+            <button class="btn-danger btn-xs delete-api-btn" data-api-id="${escapeHtml(api.id)}" title="Delete API">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </td>
         </tr>`; 
     }).join(''); 
     
-    document.querySelectorAll('[data-api-id]').forEach(row => row.addEventListener('click', () => loadApiHistory(row.dataset.apiId))); 
+    document.querySelectorAll('[data-api-id]').forEach(row => {
+      row.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        loadApiHistory(row.dataset.apiId);
+      });
+    });
+
+    document.querySelectorAll('.check-api-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const apiId = btn.dataset.apiId;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="pulse-dot"></span>';
+        btn.disabled = true;
+        try {
+          await apiFetch(`/apis/${apiId}/check`, { method: 'POST' });
+          await loadDashboard();
+          loadApiHistory(apiId);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          btn.innerHTML = originalHtml;
+          btn.disabled = false;
+        }
+      });
+    });
+
+    document.querySelectorAll('.delete-api-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const apiId = btn.dataset.apiId;
+        if (!confirm('Are you sure you want to stop monitoring and delete this API?')) return;
+        try {
+          await apiFetch(`/apis/${apiId}`, { method: 'DELETE' });
+          await loadDashboard();
+          $('detailTitle').textContent = 'Select an incident or API';
+          $('detailHeaderActions').innerHTML = '<span id="detailStatus" class="status-pill neutral"><span class="pulse-dot"></span> Waiting</span>';
+          $('detailContent').innerHTML = '<div class="detail-empty">API deleted successfully. Choose an item above to inspect.</div>';
+        } catch (err) {
+          setError(err.message);
+        }
+      });
+    });
   };
 
   const renderIncidents = () => { 
@@ -107,13 +158,57 @@
 
   const loadApiHistory = async apiId => { 
     try { 
-      $('detailStatus').innerHTML = '<span class="pulse-dot"></span> Loading...';
+      $('detailHeaderActions').innerHTML = '<span id="detailStatus" class="status-pill neutral"><span class="pulse-dot"></span> Loading...</span>';
       const data = await apiFetch(`/apis/${apiId}/monitoring-logs?page=1&limit=20`); 
       const api = state.apis.find(a => a.id === apiId);
       
       $('detailTitle').textContent = `${api?.name || 'API'} History`; 
-      $('detailStatus').innerHTML = `<span class="pulse-dot"></span> ${data.logs.length} checks`; 
-      $('detailStatus').className = 'status-pill neutral'; 
+      $('detailHeaderActions').innerHTML = `
+        <span id="detailStatus" class="status-pill neutral"><span class="pulse-dot"></span> ${data.logs.length} checks</span>
+        <button class="btn-secondary btn-xs" id="investigationCheckBtn" title="Probe now">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Check Now
+        </button>
+        <button class="btn-ghost btn-xs" id="investigationToggleBtn">
+          ${api?.isActive ? 'Pause' : 'Resume'}
+        </button>
+        <button class="btn-danger btn-xs" id="investigationDeleteBtn">Delete</button>
+      `; 
+
+      $('investigationCheckBtn').addEventListener('click', async () => {
+        try {
+          $('investigationCheckBtn').innerHTML = '<span class="pulse-dot"></span> Checking...';
+          $('investigationCheckBtn').disabled = true;
+          await apiFetch(`/apis/${apiId}/check`, { method: 'POST' });
+          await loadDashboard();
+          loadApiHistory(apiId);
+        } catch (err) {
+          setError(err.message);
+        }
+      });
+
+      $('investigationToggleBtn').addEventListener('click', async () => {
+        try {
+          const action = api?.isActive ? 'disable' : 'enable';
+          await apiFetch(`/apis/${apiId}/${action}`, { method: 'POST' });
+          await loadDashboard();
+          loadApiHistory(apiId);
+        } catch (err) {
+          setError(err.message);
+        }
+      });
+
+      $('investigationDeleteBtn').addEventListener('click', async () => {
+        if (!confirm('Are you sure you want to delete this API?')) return;
+        try {
+          await apiFetch(`/apis/${apiId}`, { method: 'DELETE' });
+          await loadDashboard();
+          $('detailTitle').textContent = 'Select an incident or API';
+          $('detailHeaderActions').innerHTML = '<span id="detailStatus" class="status-pill neutral"><span class="pulse-dot"></span> Waiting</span>';
+          $('detailContent').innerHTML = '<div class="detail-empty">API deleted. Choose an item above to inspect.</div>';
+        } catch (err) {
+          setError(err.message);
+        }
+      });
       
       $('detailContent').innerHTML = data.logs.length ? `
         <div class="table-wrap custom-scroll">
@@ -137,7 +232,7 @@
               `).join('')}
             </tbody>
           </table>
-        </div>` : '<p class="detail-empty">No monitoring history available.</p>'; 
+        </div>` : '<p class="detail-empty">No monitoring history recorded yet. Click "Check Now" above to run an instant check!</p>'; 
     } catch (error) { 
       setError(error.message); 
     } 
@@ -145,14 +240,15 @@
 
   const loadIncident = async incidentId => { 
     try { 
-      $('detailStatus').innerHTML = '<span class="pulse-dot"></span> Loading...';
+      $('detailHeaderActions').innerHTML = '<span id="detailStatus" class="status-pill neutral"><span class="pulse-dot"></span> Loading...</span>';
       const data = await apiFetch(`/incidents/${incidentId}`); 
       const incident = data.incident; 
       const analysis = incident.aiAnalyses[0]; 
       
       $('detailTitle').textContent = `${incident.api.name} / Incident`; 
-      $('detailStatus').innerHTML = `<span class="pulse-dot"></span> ${incident.status}`; 
-      $('detailStatus').className = `status-pill ${incident.status.toLowerCase()}`; 
+      $('detailHeaderActions').innerHTML = `
+        <span class="status-pill ${incident.status.toLowerCase()}"><span class="pulse-dot"></span> ${escapeHtml(incident.status)}</span>
+      `; 
       
       $('detailContent').innerHTML = `
         <div class="detail-grid">
@@ -164,20 +260,21 @@
             <p><b>URL:</b> ${escapeHtml(safeUrl(incident.api.url))}</p>
           </div>
           <div class="detail-block">
-            <h3>AI analysis</h3>
+            <h3>AI Root Cause Analysis</h3>
             ${analysis ? `
               <p><b>Summary:</b> ${escapeHtml(analysis.summary)}</p>
-              <p><b>Cause:</b> ${escapeHtml(analysis.possibleCause)}</p>
+              <p><b>Probable Cause:</b> ${escapeHtml(analysis.possibleCause)}</p>
               <p><b>Impact:</b> ${escapeHtml(analysis.impact)}</p>
-              <p><b>Severity:</b> ${escapeHtml(analysis.severity)}</p>
+              <p><b>Severity:</b> <span class="status-pill down">${escapeHtml(analysis.severity)}</span></p>
+              <p><b>Remediation Actions:</b></p>
               <ul>${(analysis.recommendations || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
-            ` : '<p>No AI analysis available.</p>'}
+            ` : '<p class="muted">AI analysis is being generated...</p>'}
           </div>
           <div class="detail-block">
-            <h3>Alerts</h3>
+            <h3>Alert Notifications</h3>
             ${incident.alerts.length ? incident.alerts.map(alert => `
               <p><b>${escapeHtml(alert.event)}</b><br><span class="status-pill success">${escapeHtml(alert.status)}</span> <span class="muted">${escapeHtml(formatDate(alert.createdAt))}</span></p>
-            `).join('') : '<p>No alerts triggered.</p>'}
+            `).join('') : '<p class="muted">No alerts triggered for this incident.</p>'}
           </div>
         </div>`; 
     } catch (error) { 
@@ -215,13 +312,14 @@
     } 
   };
 
+  // Auth form
   $('loginForm').addEventListener('submit', async event => { 
     event.preventDefault(); 
     $('loginError').textContent = ''; 
     const btn = event.target.querySelector('button');
     const ogHtml = btn.innerHTML;
     btn.innerHTML = '<span class="pulse-dot"></span> Authenticating...';
-    btn.disabled = true;
+    btn.disabled = true; 
     
     try { 
       const response = await fetch('/api/v1/auth/login', { 
@@ -238,7 +336,7 @@
       $('loginError').textContent = error.message; 
     } finally {
       btn.innerHTML = ogHtml;
-      btn.disabled = false;
+      btn.disabled = false; 
     }
   });
   
@@ -247,10 +345,132 @@
     localStorage.removeItem(tokenKey); 
     showAuth(); 
   });
+
+  // Modal handlers
+  const openModal = () => {
+    $('addApiModal').classList.remove('hidden');
+    $('addApiError').textContent = '';
+    $('testConnectionResult').className = 'test-result-content muted';
+    $('testConnectionResult').innerHTML = 'Click <b>Test Connection</b> to send a real-time probe and check reachability before saving.';
+  };
+
+  const closeModal = () => {
+    $('addApiModal').classList.add('hidden');
+    $('addApiForm').reset();
+    $('newApiExpectedStatus').value = '200';
+    $('newApiInterval').value = '60';
+    $('newApiTimeout').value = '5000';
+    $('newApiMethod').value = 'GET';
+  };
+
+  $('openAddApiBtnTop').addEventListener('click', openModal);
+  $('openAddApiBtn').addEventListener('click', openModal);
+  $('closeAddApiModal').addEventListener('click', closeModal);
+  $('cancelAddApiBtn').addEventListener('click', closeModal);
+
+  // Close modal on click outside dialog
+  $('addApiModal').addEventListener('click', e => {
+    if (e.target === $('addApiModal')) closeModal();
+  });
+
+  // Test Connection live probe
+  $('testConnectionBtn').addEventListener('click', async () => {
+    const url = $('newApiUrl').value.trim();
+    if (!url) {
+      $('testConnectionResult').className = 'test-result-content failure';
+      $('testConnectionResult').innerHTML = 'Please enter an Endpoint URL first.';
+      return;
+    }
+
+    const method = $('newApiMethod').value;
+    const expectedStatusCode = parseInt($('newApiExpectedStatus').value, 10) || 200;
+    const timeout = parseInt($('newApiTimeout').value, 10) || 5000;
+
+    const btn = $('testConnectionBtn');
+    const ogBtnHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="pulse-dot"></span> Testing...';
+    btn.disabled = true;
+
+    $('testConnectionResult').className = 'test-result-content muted';
+    $('testConnectionResult').innerHTML = '<span class="pulse-dot"></span> Pinging target endpoint...';
+
+    try {
+      const data = await apiFetch('/apis/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, method, expectedStatusCode, timeout })
+      });
+
+      const res = data.result;
+      if (res.isAvailable) {
+        $('testConnectionResult').className = 'test-result-content success';
+        $('testConnectionResult').innerHTML = `<b>Reachable!</b> Received HTTP <b>${res.statusCode}</b> in <b>${res.responseTime} ms</b>. Status matches expected (${res.expectedStatusCode}).`;
+      } else {
+        $('testConnectionResult').className = 'test-result-content failure';
+        const msg = res.statusCode ? `Returned HTTP ${res.statusCode} (expected ${res.expectedStatusCode})` : (res.errorMessage || 'Connection failed');
+        $('testConnectionResult').innerHTML = `<b>Target responded with error:</b> ${escapeHtml(msg)} in <b>${res.responseTime} ms</b>.`;
+      }
+    } catch (err) {
+      $('testConnectionResult').className = 'test-result-content failure';
+      $('testConnectionResult').innerHTML = `<b>Probe failed:</b> ${escapeHtml(err.message)}`;
+    } finally {
+      btn.innerHTML = ogBtnHtml;
+      btn.disabled = false;
+    }
+  });
+
+  // Add API Form Submit
+  $('addApiForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    $('addApiError').textContent = '';
+
+    const name = $('newApiName').value.trim();
+    const url = $('newApiUrl').value.trim();
+    const method = $('newApiMethod').value;
+    const expectedStatusCode = parseInt($('newApiExpectedStatus').value, 10) || 200;
+    const monitoringInterval = parseInt($('newApiInterval').value, 10) || 60;
+    const timeout = parseInt($('newApiTimeout').value, 10) || 5000;
+    const description = $('newApiDescription').value.trim() || undefined;
+
+    const submitBtn = $('saveAddApiBtn');
+    const ogBtnHtml = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span class="pulse-dot"></span> Saving...';
+    submitBtn.disabled = true;
+
+    try {
+      const data = await apiFetch('/apis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          url,
+          method,
+          expectedStatusCode,
+          monitoringInterval,
+          timeout,
+          description
+        })
+      });
+
+      const newApi = data.api;
+
+      // Trigger instant check right away
+      await apiFetch(`/apis/${newApi.id}/check`, { method: 'POST' }).catch(() => {});
+
+      closeModal();
+      await loadDashboard();
+      loadApiHistory(newApi.id);
+    } catch (err) {
+      $('addApiError').textContent = err.message;
+    } finally {
+      submitBtn.innerHTML = ogBtnHtml;
+      submitBtn.disabled = false;
+    }
+  });
   
   if (localStorage.getItem(tokenKey)) {
     loadDashboard(); 
   } else {
-    showAuth();
+    showAuth(); 
   }
 })();
