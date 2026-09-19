@@ -4,49 +4,111 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MonitorIQ Operations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/dashboard.css">
 </head>
 <body>
+  <!-- Ambient background glow -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
   <main class="shell">
-    <section id="authView" class="auth-panel" aria-labelledby="authTitle">
-      <div class="brand-mark">MI</div>
-      <p class="eyebrow">MonitorIQ / operations</p>
+    <section id="authView" class="auth-panel glass-panel" aria-labelledby="authTitle">
+      <div class="brand-mark-large">MI</div>
+      <p class="eyebrow gradient-text">MonitorIQ / operations</p>
       <h1 id="authTitle">See what is happening now.</h1>
       <p class="muted">Sign in to inspect API health, incident history, and response signals.</p>
       <form id="loginForm" class="login-form">
-        <label>Email<input id="email" type="email" autocomplete="username" required></label>
-        <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
-        <button type="submit">Open dashboard</button>
+        <div class="input-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" autocomplete="username" placeholder="admin@example.com" required>
+        </div>
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-primary">
+          <span>Open dashboard</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
         <p id="loginError" class="form-error" role="alert"></p>
       </form>
     </section>
 
-    <section id="dashboardView" class="hidden">
-      <header class="topbar">
-        <div><p class="eyebrow">MonitorIQ / operations</p><h1>Control room</h1></div>
-        <div class="top-actions"><span id="lastUpdated" class="muted"></span><button id="refreshButton" class="secondary">Refresh</button><button id="logoutButton" class="quiet">Sign out</button></div>
+    <section id="dashboardView" class="hidden fade-in">
+      <header class="topbar glass-panel">
+        <div class="brand">
+          <div class="brand-mark-small">MI</div>
+          <div>
+            <p class="eyebrow gradient-text">MonitorIQ / operations</p>
+            <h1>Control room</h1>
+          </div>
+        </div>
+        <div class="top-actions">
+          <span id="lastUpdated" class="muted update-badge"></span>
+          <button id="refreshButton" class="btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5"/></svg>
+            Refresh
+          </button>
+          <button id="logoutButton" class="btn-ghost">Sign out</button>
+        </div>
       </header>
-      <p id="pageError" class="banner hidden" role="alert"></p>
+
+      <p id="pageError" class="banner hidden glass-panel error-panel" role="alert"></p>
 
       <section id="metricGrid" class="metric-grid" aria-label="Overview metrics"></section>
 
       <div class="workspace-grid">
-        <section class="panel wide-panel">
-          <div class="section-heading"><div><p class="eyebrow">Live inventory</p><h2>API health</h2></div><span id="apiCount" class="count-badge"></span></div>
-          <div id="apiTable" class="table-wrap"></div>
+        <section class="panel wide-panel glass-panel slide-up">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Live inventory</p>
+              <h2>API health</h2>
+            </div>
+            <span id="apiCount" class="count-badge"></span>
+          </div>
+          <div class="table-wrap">
+            <table class="modern-table">
+              <thead>
+                <tr>
+                  <th>API Endpoint</th>
+                  <th>Status</th>
+                  <th>Latest Check</th>
+                  <th>Response Time</th>
+                </tr>
+              </thead>
+              <tbody id="apiTableBody"></tbody>
+            </table>
+          </div>
         </section>
-        <section class="panel incident-panel">
-          <div class="section-heading"><div><p class="eyebrow">Attention queue</p><h2>Incidents</h2></div><span id="incidentCount" class="count-badge"></span></div>
-          <div id="incidentList" class="incident-list"></div>
+
+        <section class="panel incident-panel glass-panel slide-up" style="animation-delay: 0.1s;">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Attention queue</p>
+              <h2>Incidents</h2>
+            </div>
+            <span id="incidentCount" class="count-badge"></span>
+          </div>
+          <div id="incidentList" class="incident-list custom-scroll"></div>
         </section>
       </div>
 
-      <section class="panel detail-panel">
-        <div class="section-heading"><div><p class="eyebrow">Investigation</p><h2 id="detailTitle">Select an incident or API</h2></div><span id="detailStatus" class="status-pill neutral">Waiting</span></div>
+      <section class="panel detail-panel glass-panel slide-up" style="animation-delay: 0.2s;">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Investigation</p>
+            <h2 id="detailTitle">Select an incident or API</h2>
+          </div>
+          <span id="detailStatus" class="status-pill neutral"><span class="pulse-dot"></span> Waiting</span>
+        </div>
         <div id="detailContent" class="detail-empty">Choose an item above to inspect its history.</div>
       </section>
     </section>
   </main>
+  
   <script src="/dashboard.js" defer></script>
 </body>
 </html>
