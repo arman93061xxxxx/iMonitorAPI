@@ -1,0 +1,215 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum HttpMethod {
+  GET
+  POST
+  PUT
+  PATCH
+  DELETE
+  HEAD
+  OPTIONS
+}
+
+enum IncidentStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+}
+
+enum IncidentLogEvent {
+  INCIDENT_OPENED
+  FAILURE_DETECTED
+  INCIDENT_RESOLVED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertType {
+  EMAIL
+  SLACK
+  WEBHOOK
+  SMS
+}
+
+enum AlertStatus {
+  PENDING
+  SENT
+  FAILED
+  RETRY
+}
+
+enum AlertEvent {
+  INCIDENT_OPENED
+  INCIDENT_RESOLVED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  apis Api[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Api {
+  id                 String     @id @default(uuid())
+  name               String
+  url                String
+  method             HttpMethod @default(GET)
+  description        String?
+  monitoringInterval Int        @default(60) // seconds
+  timeout            Int        @default(5000) // milliseconds
+  expectedStatusCode Int?       @default(200)
+  isActive           Boolean    @default(true)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  monitoringLogs MonitoringLog[]
+  incidents      Incident[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([userId, isActive])
+  @@map("apis")
+}
+
+model MonitoringLog {
+  id           String   @id @default(uuid())
+  apiId        String
+  timestamp    DateTime @default(now())
+  statusCode   Int?
+  responseTime Int? // milliseconds
+  isAvailable  Boolean
+  errorMessage String?
+  isTimeout    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  api Api @relation(fields: [apiId], references: [id], onDelete: Cascade)
+
+  incidentLogs IncidentLog[]
+
+  @@index([apiId, timestamp(sort: Desc)])
+  @@index([timestamp(sort: Desc)])
+  @@index([isAvailable])
+  @@map("monitoring_logs")
+}
+
+model Incident {
+  id              String         @id @default(cuid())
+  incidentNumber  String         @unique
+  apiId           String
+  status          IncidentStatus @default(OPEN)
+  severity        Severity       @default(MEDIUM)
+  startedAt       DateTime
+  detectedAt      DateTime       @default(now())
+  resolvedAt      DateTime?
+  failureCount    Int            @default(1)
+  summary         String?
+  possibleCause   String?
+  recommendation  String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  api Api @relation(fields: [apiId], references: [id], onDelete: Cascade)
+
+  incidentLogs IncidentLog[]
+  aiAnalyses   AIAnalysis[]
+  alerts       Alert[]
+
+  @@index([apiId, status])
+  @@index([status])
+  @@index([severity])
+  @@index([detectedAt(sort: Desc)])
+  @@map("incidents")
+}
+
+model IncidentLog {
+  id              String   @id @default(uuid())
+  incidentId      String
+  monitoringLogId String
+  event           IncidentLogEvent @default(FAILURE_DETECTED)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  incident      Incident      @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  monitoringLog MonitoringLog @relation(fields: [monitoringLogId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, monitoringLogId])
+  @@index([incidentId])
+  @@map("incident_logs")
+}
+
+model AIAnalysis {
+  id               String   @id @default(uuid())
+  incidentId       String
+  summary          String
+  possibleCause    String
+  impact           String
+  confidence       Float // 0.0 to 1.0
+  severity         Severity
+  recommendations  Json // Array of strings
+  model            String
+  promptTokens     Int?
+  completionTokens Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId])
+  @@index([incidentId])
+  @@map("ai_analyses")
+}
+
+model Alert {
+  id         String      @id @default(uuid())
+  incidentId String
+  event      AlertEvent  @default(INCIDENT_OPENED)
+  type       AlertType   @default(EMAIL)
+  recipient  String
+  status     AlertStatus @default(PENDING)
+  sentAt     DateTime?
+  error      String?
+  retryCount Int         @default(0)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@index([status])
+  @@unique([incidentId, event])
+  @@map("alerts")
+}
