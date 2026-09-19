@@ -1,0 +1,119 @@
+export const HTTP_STATUS_CODES = {
+  SUCCESS: {
+    OK: 200,
+    HEALTHY: [200, 201, 202, 203, 204],
+  },
+  CLIENT_ERROR: {
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+  },
+  SERVER_ERROR: {
+    INTERNAL_SERVER_ERROR: 500,
+    BAD_GATEWAY: 502,
+    SERVICE_UNAVAILABLE: 503,
+    GATEWAY_TIMEOUT: 504,
+  },
+} as const;
+
+export const INCIDENT_STATUS = {
+  OPEN: 'OPEN',
+  INVESTIGATING: 'INVESTIGATING',
+  RESOLVED: 'RESOLVED',
+} as const;
+
+export const SEVERITY_LEVELS = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL',
+} as const;
+
+export const ALERT_TYPES = {
+  EMAIL: 'EMAIL',
+  SLACK: 'SLACK',
+  WEBHOOK: 'WEBHOOK',
+  SMS: 'SMS',
+} as const;
+
+export const ALERT_STATUS = {
+  PENDING: 'PENDING',
+  SENT: 'SENT',
+  FAILED: 'FAILED',
+  RETRY: 'RETRY',
+} as const;
+
+export const HTTP_METHODS = {
+  GET: 'GET',
+  POST: 'POST',
+  PUT: 'PUT',
+  PATCH: 'PATCH',
+  DELETE: 'DELETE',
+  HEAD: 'HEAD',
+  OPTIONS: 'OPTIONS',
+} as const;
+
+export const USER_ROLES = {
+  USER: 'USER',
+  ADMIN: 'ADMIN',
+} as const;
+
+export const REDIS_KEYS = {
+  API_STATUS: (apiId: string) => `api:${apiId}:status`,
+  OPEN_INCIDENT: (apiId: string) => `api:${apiId}:incident`,
+  DASHBOARD_OVERVIEW: 'dashboard:overview',
+} as const;
+
+export const KAFKA_EVENTS = {
+  INCIDENT_DETECTED: 'INCIDENT_DETECTED',
+  INCIDENT_UPDATED: 'INCIDENT_UPDATED',
+  INCIDENT_RESOLVED: 'INCIDENT_RESOLVED',
+  INCIDENT_OPENED: 'INCIDENT_OPENED',
+  INCIDENT_ANALYZED: 'INCIDENT_ANALYZED',
+} as const;
+
+export const ERROR_CODES = {
+  // Auth errors
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+  TOKEN_INVALID: 'TOKEN_INVALID',
+  EMAIL_ALREADY_EXISTS: 'EMAIL_ALREADY_EXISTS',
+
+  // API errors
+  API_NOT_FOUND: 'API_NOT_FOUND',
+  API_NOT_OWNED: 'API_NOT_OWNED',
+  INVALID_URL: 'INVALID_URL',
+
+  // Incident errors
+  INCIDENT_NOT_FOUND: 'INCIDENT_NOT_FOUND',
+  INCIDENT_ALREADY_RESOLVED: 'INCIDENT_ALREADY_RESOLVED',
+
+  // System errors
+  DATABASE_ERROR: 'DATABASE_ERROR',
+  REDIS_ERROR: 'REDIS_ERROR',
+  KAFKA_ERROR: 'KAFKA_ERROR',
+  AI_SERVICE_ERROR: 'AI_SERVICE_ERROR',
+  EMAIL_SERVICE_ERROR: 'EMAIL_SERVICE_ERROR',
+} as const;
+
+export const VALIDATION_RULES = {
+  PASSWORD: {
+    MIN_LENGTH: 8,
+    REQUIRE_UPPERCASE: true,
+    REQUIRE_LOWERCASE: true,
+    REQUIRE_NUMBER: true,
+    REQUIRE_SPECIAL: true,
+  },
+  EMAIL: {
+    MAX_LENGTH: 255,
+  },
+  API: {
+    NAME_MAX_LENGTH: 255,
+    DESCRIPTION_MAX_LENGTH: 1000,
+    MIN_INTERVAL: 10, // seconds
+    MAX_INTERVAL: 86400, // 24 hours
+    MIN_TIMEOUT: 1000, // 1 second
+    MAX_TIMEOUT: 60000, // 60 seconds
+  },
+} as const;
