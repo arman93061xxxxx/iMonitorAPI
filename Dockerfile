@@ -1,6 +1,8 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 RUN apk add --no-cache openssl
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
+RUN npm config set strict-ssl false
 COPY package*.json ./
 COPY prisma ./prisma
 RUN npm ci
@@ -12,6 +14,8 @@ FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apk add --no-cache openssl
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
+RUN npm config set strict-ssl false
 COPY package*.json ./
 COPY --from=build /app/prisma ./prisma
 RUN npm ci --omit=dev
