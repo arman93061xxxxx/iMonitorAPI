@@ -91,3 +91,17 @@ export const listApisSchema = z.object({
     offset: z.coerce.number().int().min(0).optional(),
   }),
 });
+
+export const testApiSchema = z.object({
+  body: z.object({
+    url: urlSchema,
+    method: httpMethodSchema.optional().default(HTTP_METHODS.GET),
+    timeout: z
+      .number()
+      .int()
+      .min(VALIDATION_RULES.API.MIN_TIMEOUT)
+      .max(VALIDATION_RULES.API.MAX_TIMEOUT)
+      .optional(),
+    expectedStatusCode: z.number().int().min(100).max(599).optional(),
+  }),
+});

@@ -4,49 +4,214 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MonitorIQ Operations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/dashboard.css">
 </head>
 <body>
+  <!-- Ambient background glow -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
   <main class="shell">
-    <section id="authView" class="auth-panel" aria-labelledby="authTitle">
-      <div class="brand-mark">MI</div>
-      <p class="eyebrow">MonitorIQ / operations</p>
+    <section id="authView" class="auth-panel glass-panel" aria-labelledby="authTitle">
+      <div class="brand-mark-large">MI</div>
+      <p class="eyebrow gradient-text">MonitorIQ / operations</p>
       <h1 id="authTitle">See what is happening now.</h1>
       <p class="muted">Sign in to inspect API health, incident history, and response signals.</p>
       <form id="loginForm" class="login-form">
-        <label>Email<input id="email" type="email" autocomplete="username" required></label>
-        <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
-        <button type="submit">Open dashboard</button>
+        <div class="input-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" autocomplete="username" placeholder="admin@example.com" required>
+        </div>
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-primary">
+          <span>Open dashboard</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
         <p id="loginError" class="form-error" role="alert"></p>
       </form>
     </section>
 
-    <section id="dashboardView" class="hidden">
-      <header class="topbar">
-        <div><p class="eyebrow">MonitorIQ / operations</p><h1>Control room</h1></div>
-        <div class="top-actions"><span id="lastUpdated" class="muted"></span><button id="refreshButton" class="secondary">Refresh</button><button id="logoutButton" class="quiet">Sign out</button></div>
+    <section id="dashboardView" class="hidden fade-in">
+      <header class="topbar glass-panel">
+        <div class="brand">
+          <div class="brand-mark-small">MI</div>
+          <div>
+            <p class="eyebrow gradient-text">MonitorIQ / operations</p>
+            <h1>Control room</h1>
+          </div>
+        </div>
+        <div class="top-actions">
+          <span id="lastUpdated" class="muted update-badge"></span>
+          <button id="openAddApiBtnTop" class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Add API
+          </button>
+          <button id="refreshButton" class="btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5"/></svg>
+            Refresh
+          </button>
+          <button id="logoutButton" class="btn-ghost">Sign out</button>
+        </div>
       </header>
-      <p id="pageError" class="banner hidden" role="alert"></p>
+
+      <p id="pageError" class="banner hidden glass-panel error-panel" role="alert"></p>
 
       <section id="metricGrid" class="metric-grid" aria-label="Overview metrics"></section>
 
       <div class="workspace-grid">
-        <section class="panel wide-panel">
-          <div class="section-heading"><div><p class="eyebrow">Live inventory</p><h2>API health</h2></div><span id="apiCount" class="count-badge"></span></div>
-          <div id="apiTable" class="table-wrap"></div>
+        <section class="panel wide-panel glass-panel slide-up">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Live inventory</p>
+              <h2>API health</h2>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button id="openAddApiBtn" class="btn-primary btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                Add API
+              </button>
+              <span id="apiCount" class="count-badge"></span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="modern-table">
+              <thead>
+                <tr>
+                  <th>API Endpoint</th>
+                  <th>Status</th>
+                  <th>Latest Check</th>
+                  <th>Response Time</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="apiTableBody"></tbody>
+            </table>
+          </div>
         </section>
-        <section class="panel incident-panel">
-          <div class="section-heading"><div><p class="eyebrow">Attention queue</p><h2>Incidents</h2></div><span id="incidentCount" class="count-badge"></span></div>
-          <div id="incidentList" class="incident-list"></div>
+
+        <section class="panel incident-panel glass-panel slide-up" style="animation-delay: 0.1s;">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Attention queue</p>
+              <h2>Incidents</h2>
+            </div>
+            <span id="incidentCount" class="count-badge"></span>
+          </div>
+          <div id="incidentList" class="incident-list custom-scroll"></div>
         </section>
       </div>
 
-      <section class="panel detail-panel">
-        <div class="section-heading"><div><p class="eyebrow">Investigation</p><h2 id="detailTitle">Select an incident or API</h2></div><span id="detailStatus" class="status-pill neutral">Waiting</span></div>
+      <section class="panel detail-panel glass-panel slide-up" style="animation-delay: 0.2s;">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Investigation</p>
+            <h2 id="detailTitle">Select an incident or API</h2>
+          </div>
+          <div id="detailHeaderActions" style="display: flex; gap: 8px; align-items: center;">
+            <span id="detailStatus" class="status-pill neutral"><span class="pulse-dot"></span> Waiting</span>
+          </div>
+        </div>
         <div id="detailContent" class="detail-empty">Choose an item above to inspect its history.</div>
       </section>
     </section>
+
+    <!-- Add API Modal -->
+    <div id="addApiModal" class="modal-backdrop hidden">
+      <div class="modal-dialog glass-panel slide-up">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow gradient-text">Configuration</p>
+            <h2>Register New API</h2>
+          </div>
+          <button type="button" id="closeAddApiModal" class="btn-icon" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <form id="addApiForm" class="modal-form">
+          <div class="input-group">
+            <label for="newApiName">API Name *</label>
+            <input id="newApiName" type="text" placeholder="e.g. Production Authentication API" required>
+          </div>
+
+          <div class="input-group">
+            <label for="newApiUrl">Endpoint URL *</label>
+            <input id="newApiUrl" type="url" placeholder="https://api.example.com/health" required>
+          </div>
+
+          <div class="form-row">
+            <div class="input-group">
+              <label for="newApiMethod">Method</label>
+              <select id="newApiMethod">
+                <option value="GET" selected>GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+                <option value="DELETE">DELETE</option>
+                <option value="HEAD">HEAD</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <label for="newApiExpectedStatus">Expected Status</label>
+              <input id="newApiExpectedStatus" type="number" value="200" min="100" max="599" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="input-group">
+              <label for="newApiInterval">Interval (seconds)</label>
+              <input id="newApiInterval" type="number" value="60" min="10" max="86400" required>
+            </div>
+
+            <div class="input-group">
+              <label for="newApiTimeout">Timeout (ms)</label>
+              <input id="newApiTimeout" type="number" value="5000" min="1000" max="60000" required>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="newApiDescription">Description (Optional)</label>
+            <input id="newApiDescription" type="text" placeholder="Brief note about this service">
+          </div>
+
+          <!-- Live Reachability Check Preview -->
+          <div class="test-preview-box">
+            <div class="test-preview-header">
+              <span class="preview-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Live Reachability Probe
+              </span>
+              <button type="button" id="testConnectionBtn" class="btn-secondary btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Test Connection
+              </button>
+            </div>
+            <div id="testConnectionResult" class="test-result-content muted">
+              Click <b>Test Connection</b> to send a real-time probe and check reachability before saving.
+            </div>
+          </div>
+
+          <p id="addApiError" class="form-error" role="alert"></p>
+
+          <div class="modal-actions">
+            <button type="button" id="cancelAddApiBtn" class="btn-ghost">Cancel</button>
+            <button type="submit" id="saveAddApiBtn" class="btn-primary">
+              <span>Save & Start Monitoring</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </main>
+  
   <script src="/dashboard.js" defer></script>
 </body>
 </html>

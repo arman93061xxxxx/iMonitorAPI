@@ -38,3 +38,13 @@ export const disable = async (req: Request, res: Response): Promise<void> => {
   const api = await apiService.setApiActive(req.user!.id, req.params.id, false);
   ResponseHandler.success(res, { api });
 };
+
+export const testConnection = async (req: Request, res: Response): Promise<void> => {
+  const result = await apiService.testConnection(req.body);
+  ResponseHandler.success(res, { result });
+};
+
+export const checkNow = async (req: Request, res: Response): Promise<void> => {
+  const result = await apiService.triggerCheck(req.user!.id, req.params.id);
+  ResponseHandler.success(res, { result });
+};

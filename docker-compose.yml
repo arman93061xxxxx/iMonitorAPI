@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build:
@@ -8,22 +6,23 @@ services:
     container_name: monitoriq-app
     restart: unless-stopped
     environment:
-      NODE_ENV: production
-      PORT: 3000
-      DATABASE_URL: postgresql://admin:postgres_password_change_me@postgres:5432/monitoriq?schema=public
-      REDIS_URL: redis://redis:6379
-      KAFKA_BROKER: kafka:9092
-      KAFKA_CLIENT_ID: monitoriq-service
-      KAFKA_INCIDENT_TOPIC: incident-events
-      KAFKA_CONSUMER_GROUP: incident-processor-group
-      JWT_SECRET: CHANGEME_REPLACE_WITH_REAL_64_BYTE_HEX_SECRET
-      FRONTEND_URL: http://localhost:3000
-      EMAIL_PROVIDER: mock
-      ALERT_EMAIL_TO: alerts@example.invalid
-      FEATURE_AI_ANALYSIS: 'true'
-      FEATURE_EMAIL_ALERTS: 'true'
-      FEATURE_KAFKA_EVENTS: 'true'
-      FEATURE_REDIS_CACHE: 'true'
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3000}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-postgres_password_change_me}@postgres:5432/${POSTGRES_DB:-monitoriq}?schema=public
+      REDIS_URL: ${DOCKER_REDIS_URL:-redis://redis:6379}
+      KAFKA_BROKER: ${DOCKER_KAFKA_BROKER:-kafka:9092}
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-monitoriq-service}
+      KAFKA_INCIDENT_TOPIC: ${KAFKA_INCIDENT_TOPIC:-incident-events}
+      KAFKA_CONSUMER_GROUP: ${KAFKA_CONSUMER_GROUP:-incident-processor-group}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-mock}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-alerts@example.invalid}
+      FEATURE_AI_ANALYSIS: ${FEATURE_AI_ANALYSIS:-true}
+      FEATURE_EMAIL_ALERTS: ${FEATURE_EMAIL_ALERTS:-true}
+      FEATURE_KAFKA_EVENTS: ${FEATURE_KAFKA_EVENTS:-true}
+      FEATURE_REDIS_CACHE: ${FEATURE_REDIS_CACHE:-true}
     ports:
       - '3000:3000'
     depends_on:
@@ -41,15 +40,15 @@ services:
     container_name: monitoriq-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: postgres_password_change_me
-      POSTGRES_DB: monitoriq
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-monitoriq}
     ports:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U admin -d monitoriq']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-monitoriq}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -88,7 +87,7 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       # Optional: Set heap size
       KAFKA_HEAP_OPTS: -Xmx512m -Xms512m
